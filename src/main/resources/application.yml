@@ -1,0 +1,19 @@
+server:
+  port: 9114
+
+spring:
+  application:
+    name: demo-kstream
+  kafka:
+    consumer:
+      bootstrap-servers: 127.0.0.1:9092
+      group-id: group-dev-local-01
+    producer:
+      bootstrap-servers: 127.0.0.1:9092
+
+custom:
+  topics:
+    input: insight
+    output: advice
+    retry: retry-insight
+    error: error-insight
