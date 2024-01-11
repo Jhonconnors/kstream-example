@@ -1,13 +1,12 @@
 package com.example.kstream.demo.config.serde;
 
-import com.example.kstream.demo.model.Advice;
-import org.apache.kafka.common.serialization.Deserializer;
+import com.example.kstream.demo.model.Generator;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class AdviceSerializer implements Serializer<Advice> {
+public class AdviceSerializer implements Serializer<Generator> {
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
@@ -15,7 +14,7 @@ public class AdviceSerializer implements Serializer<Advice> {
     }
 
     @Override
-    public byte[] serialize(String topic, Advice data) {
+    public byte[] serialize(String topic, Generator data) {
         if (data == null) {
             return null;
         }
@@ -28,11 +27,11 @@ public class AdviceSerializer implements Serializer<Advice> {
         }
     }
 
-    private String convertAdviceToJson(Advice advice) {
+    private String convertAdviceToJson(Generator generator) {
         // Lógica para convertir un objeto Advice a una representación en JSON
         // Implementa la lógica adecuada según tus requisitos y bibliotecas de serialización (por ejemplo, Gson, Jackson, etc.)
         // Ejemplo básico:
-        return "{\"IdBala\":" + advice.getIdBala() + ",\"zona\":\"" + advice.getZona() + "\",\"Status\":\"" + advice.getStatus() + "\",\"values\":" + advice.getValues() + "}";
+        return "{\"IdBala\":" + generator.getIdBala() + ",\"zona\":\"" + generator.getZona() + "\",\"Status\":\"" + generator.getStatus() + "\",\"values\":" + generator.getValues() + "}";
     }
 
     @Override
