@@ -18,7 +18,7 @@ public class InsightsDeserializer implements Deserializer<Insights> {
 
     @Override
     public Insights deserialize(String topic, byte[] data) {
-        if (data == null) {
+        if (data == null || data.length == 0) {
             return null;
         }
         try {

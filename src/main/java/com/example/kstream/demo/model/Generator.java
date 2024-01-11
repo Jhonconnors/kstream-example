@@ -1,10 +1,9 @@
 package com.example.kstream.demo.model;
 
 import lombok.Data;
-import org.apache.kafka.common.protocol.types.Field;
 
 @Data
-public class Advice {
+public class Generator {
 
     private Integer IdBala;
     private String zona;

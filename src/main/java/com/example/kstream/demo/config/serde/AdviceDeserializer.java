@@ -1,14 +1,13 @@
 package com.example.kstream.demo.config.serde;
 
-import com.example.kstream.demo.model.Advice;
-import com.example.kstream.demo.model.Insights;
+import com.example.kstream.demo.model.Generator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class AdviceDeserializer implements Deserializer<Advice> {
+public class AdviceDeserializer implements Deserializer<Generator> {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -18,7 +17,7 @@ public class AdviceDeserializer implements Deserializer<Advice> {
     }
 
     @Override
-    public Advice deserialize(String topic, byte[] data) {
+    public Generator deserialize(String topic, byte[] data) {
         if (data == null) {
             return null;
         }
@@ -31,9 +30,9 @@ public class AdviceDeserializer implements Deserializer<Advice> {
         }
     }
 
-    private Advice convertJsonToAdvice(String jsonData) {
+    private Generator convertJsonToAdvice(String jsonData) {
         try {
-            return objectMapper.readValue(jsonData, Advice.class);
+            return objectMapper.readValue(jsonData, Generator.class);
         } catch (Exception e) {
             throw new RuntimeException("Error al deserializar Insights", e);
         }
