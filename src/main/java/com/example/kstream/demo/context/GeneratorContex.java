@@ -21,6 +21,13 @@ public class GeneratorContex {
         Generator generator = generatorService.generateGenerator(processContext.getInput());
         processContext.setOutput(generator);
 
+        if (processContext.getInput().getId() ==12){
+            Task task = new Task();
+            task.setState(1);
+            processContext.setTask(task);
+        }
+        System.out.println("Context : "+processContext);
+
     }
 
 }
