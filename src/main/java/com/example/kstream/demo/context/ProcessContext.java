@@ -11,5 +11,5 @@ public class ProcessContext <I, O> {
     private String errorMessage;
     private I input;
     private O output;
-
+    private String key;
 }

@@ -4,6 +4,7 @@ import com.example.kstream.demo.config.serde.AdviceDeserializer;
 import com.example.kstream.demo.config.serde.AdviceSerializer;
 import com.example.kstream.demo.config.serde.ProcessContextSerializer;
 import com.example.kstream.demo.context.GeneratorContex;
+import com.example.kstream.demo.context.GeneratorProcessContext;
 import com.example.kstream.demo.context.ProcessContext;
 import com.example.kstream.demo.model.Generator;
 import com.example.kstream.demo.model.Insights;
@@ -24,10 +25,10 @@ public class StreamProcessingService {
             Serdes.serdeFrom(new ProcessContextSerializer<>(), new ProcessContextSerializer<>());
     private static final Serde<Generator> ADVICE_SERDE = Serdes.serdeFrom(new AdviceSerializer(), new AdviceDeserializer());
 
-    public ProcessContext<Insights, Generator> process(Insights value) {
+    public GeneratorProcessContext process(Insights value) {
         System.out.println("Received Insights: " + value);
 
-        ProcessContext<Insights, Generator> processContext = new ProcessContext<>();
+        GeneratorProcessContext processContext = new GeneratorProcessContext();
         processContext.setInput(value);
 
         generatorContex.setProcessContext(processContext);
