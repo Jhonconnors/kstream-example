@@ -1,19 +1,17 @@
 package com.example.kstream.demo.context;
 
-
+import com.example.kstream.demo.model.TaskState;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
+import java.util.List;
 
 @Data
 @Component
-public class ProcessContext <I, O> {
+public class TaskChain<E extends TaskElement> {
 
     @Autowired
-    private TaskChain task = new TaskChain<>();
-    private String errorMessage;
-    private I input;
-    private O output;
-    private String key;
+    private List<E> taskExecutes;
+    private TaskState state = TaskState.Running;
+
 }

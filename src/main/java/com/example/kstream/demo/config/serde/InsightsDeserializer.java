@@ -1,13 +1,13 @@
 package com.example.kstream.demo.config.serde;
 
-import com.example.kstream.demo.model.Insights;
+import com.example.kstream.demo.model.ClientInsight;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class InsightsDeserializer implements Deserializer<Insights> {
+public class InsightsDeserializer implements Deserializer<ClientInsight> {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -17,7 +17,7 @@ public class InsightsDeserializer implements Deserializer<Insights> {
     }
 
     @Override
-    public Insights deserialize(String topic, byte[] data) {
+    public ClientInsight deserialize(String topic, byte[] data) {
         if (data == null || data.length == 0) {
             return null;
         }
@@ -30,9 +30,9 @@ public class InsightsDeserializer implements Deserializer<Insights> {
         }
     }
 
-    private Insights convertJsonToInsights(String jsonData) {
+    private ClientInsight convertJsonToInsights(String jsonData) {
         try {
-            return objectMapper.readValue(jsonData, Insights.class);
+            return objectMapper.readValue(jsonData, ClientInsight.class);
         } catch (Exception e) {
             throw new RuntimeException("Error al deserializar Insights", e);
         }

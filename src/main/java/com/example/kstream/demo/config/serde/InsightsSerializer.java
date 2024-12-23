@@ -1,13 +1,12 @@
 package com.example.kstream.demo.config.serde;
 
-import com.example.kstream.demo.model.Insights;
-import org.apache.kafka.common.serialization.Deserializer;
+import com.example.kstream.demo.model.ClientInsight;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class InsightsSerializer implements Serializer<Insights> {
+public class InsightsSerializer implements Serializer<ClientInsight> {
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
@@ -15,7 +14,7 @@ public class InsightsSerializer implements Serializer<Insights> {
     }
 
     @Override
-    public byte[] serialize(String topic, Insights data) {
+    public byte[] serialize(String topic, ClientInsight data) {
         if (data == null) {
             return null;
         }
@@ -28,11 +27,12 @@ public class InsightsSerializer implements Serializer<Insights> {
         }
     }
 
-    private String convertInsightsToJson(Insights insights) {
+    private String convertInsightsToJson(ClientInsight insights) {
         // Lógica para convertir un objeto Insights a una representación en JSON
         // Implementa la lógica adecuada según tus requisitos y bibliotecas de serialización (por ejemplo, Gson, Jackson, etc.)
         // Ejemplo básico:
-        return "{\"id\":" + insights.getId() + ",\"variante\":\"" + insights.getVariante() + "\",\"timeStamp\":\"" + insights.getTimeStamp() + "\",\"variables\":" + insights.getVariables() + "}";
+        return "{\"id\":" + insights.getId() + ",\"offer_name\":\"" + insights.getOfferName() +
+                "\",\"timestamp\":\"" + insights.getTimestamp() + "\",\"customer_data\":" + insights.getCustomerData() + "}";
     }
 
     @Override

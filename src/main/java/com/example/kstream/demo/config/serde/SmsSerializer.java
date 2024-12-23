@@ -1,12 +1,12 @@
 package com.example.kstream.demo.config.serde;
 
-import com.example.kstream.demo.model.Generator;
+import com.example.kstream.demo.model.SmsNotification;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class AdviceSerializer implements Serializer<Generator> {
+public class SmsSerializer implements Serializer<SmsNotification> {
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
@@ -14,24 +14,25 @@ public class AdviceSerializer implements Serializer<Generator> {
     }
 
     @Override
-    public byte[] serialize(String topic, Generator data) {
+    public byte[] serialize(String topic, SmsNotification data) {
         if (data == null) {
             return null;
         }
         try {
             // Transformar el objeto Advice a un array de bytes (en este ejemplo se utiliza una representación en JSON)
-            String jsonData = convertAdviceToJson(data);
+            String jsonData = convertSmsToJson(data);
             return jsonData.getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("Error al serializar Advice", e);
         }
     }
 
-    private String convertAdviceToJson(Generator generator) {
+    private String convertSmsToJson(SmsNotification sms) {
         // Lógica para convertir un objeto Advice a una representación en JSON
         // Implementa la lógica adecuada según tus requisitos y bibliotecas de serialización (por ejemplo, Gson, Jackson, etc.)
         // Ejemplo básico:
-        return "{\"IdBala\":" + generator.getIdBala() + ",\"zona\":\"" + generator.getZona() + "\",\"Status\":\"" + generator.getStatus() + "\",\"values\":" + generator.getValues() + "}";
+        return "{\"id_notification\":" + sms.getIdNotification() + ",\"destination_number\":\"" + sms.getDestinationNumber()
+                + "\",\"notification_date\":\"" + sms.getNotificationDate() + "\",\"message_body\":" + sms.getMessageBody() + "}";
     }
 
     @Override

@@ -4,16 +4,18 @@ server:
 spring:
   application:
     name: demo-kstream
+  output:
+    ansi:
+      enabled: always
   kafka:
+    streams:
+      application-id: enhanced_consumer
+      bootstrap-servers: 127.0.0.1:9092
     consumer:
-      bootstrap-servers: 127.0.0.1:9092
       group-id: group-dev-local-01
-    producer:
-      bootstrap-servers: 127.0.0.1:9092
-
 custom:
   topics:
-    input: insight
-    output: advice
-    retry: retry-insight
-    error: error-insight
+    input: client_insight
+    output: sms_notification
+    retry: client_insight_retry
+    error: client_insight_error
