@@ -21,7 +21,7 @@ public class TaskBuilderSms extends TaskElement<ProcessContext<ClientInsight, Sm
         SmsNotification smsNotification = new SmsNotification();
         smsNotification.setIdNotification(UUID.randomUUID().toString());
         generatePhoneNumber(smsNotification);
-        smsNotification.setMessageBody("Esta es una Oferta comercial");
+        smsNotification.setMessageBody("Esta es una Promocion");
         smsNotification.setNotificationDate(new Date());
         processContext.setOutput(smsNotification);
         try {

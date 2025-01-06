@@ -10,9 +10,11 @@ spring:
   kafka:
     streams:
       application-id: enhanced_consumer
+      client-id: group-dev-local-01
+      consumer-id: "-"
       bootstrap-servers: 127.0.0.1:9092
-    consumer:
-      group-id: group-dev-local-01
+#    consumer:
+#      group-id: group-dev-local-01
 custom:
   topics:
     input: client_insight

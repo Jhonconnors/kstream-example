@@ -20,15 +20,19 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.processor.AbstractProcessor;
 import org.apache.kafka.streams.processor.ProcessorContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.support.serializer.JsonSerde;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class KafkaFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaFactory.class);
 
     @Autowired
     private KafkaDefinition kafkaDefinition;
@@ -46,7 +50,6 @@ public class KafkaFactory {
 
     @Autowired
     void buildPipeline(StreamsBuilder builder) {
-
         KStream<String, ProcessContext> stream = builder.stream(kafkaDefinition.getInputTopic(),
                         Consumed.with(Serdes.String(), new JsonSerde<>(ClientInsight.class)))
                 .filter((key, value) -> value != null)
@@ -63,35 +66,52 @@ public class KafkaFactory {
             @Override
             public void init(ProcessorContext context) {
                 super.init(context);
-//                // Configuración del consumidor Kafka adicional
-                Properties props = new Properties();
-                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
-                props.put(ConsumerConfig.GROUP_ID_CONFIG, "extra_consumer2");
-                props.put(ConsumerConfig.GROUP_ID_CONFIG, "group-dev-local-02");
-                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-                kafkaConsumer = new KafkaConsumer<>(props);
             }
 
             @Override
             public void process(String key, ProcessContext value) {
-                // Obtener el offset actual
-                long currentOffset = this.context().offset();
+                // Configuración del consumidor Kafka adicional
+                Properties props = new Properties();
+                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+                props.put(ConsumerConfig.GROUP_ID_CONFIG, this.context.applicationId());
+                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+                props.put(ConsumerConfig.CLIENT_ID_CONFIG, "extra_consumer");
+                kafkaConsumer = new KafkaConsumer<>(props);
+                long totalLag = 0;
 
-                // Obtener el Log End Offset
-                TopicPartition topicPartition = new TopicPartition(kafkaDefinition.getInputTopic(), this.context().partition());
-                kafkaConsumer.assign(Collections.singletonList(topicPartition));
-                kafkaConsumer.seekToEnd(Collections.singletonList(topicPartition));
-                long logEndOffset = kafkaConsumer.position(topicPartition);
+                // Obtener las particiones del tópico
+                List<TopicPartition> partitions = kafkaConsumer.partitionsFor(kafkaDefinition.getInputTopic())
+                        .stream()
+                        .map(info -> new TopicPartition(info.topic(), info.partition()))
+                        .collect(Collectors.toList());
 
-                // Calcular el lag
-                long lag = logEndOffset - currentOffset;
+                kafkaConsumer.assign(partitions);
 
-                // Mostrar detalles
-                System.out.printf(
-                        "Offset actual: %d, Log End Offset: %d, Lag del consumidor: %d%n",
-                        currentOffset, logEndOffset, lag
-                );
+
+                // Obtener el offset comprometido para cada partición
+                for (TopicPartition partition : partitions) {
+                    // Obtener el offset comprometido (current offset) del consumidor real
+                    long currentOffset = kafkaConsumer.position(partition);
+
+                    // Obtener el Log End Offset
+                    kafkaConsumer.seekToEnd(Collections.singletonList(partition));
+                    long logEndOffset = kafkaConsumer.position(partition);
+
+                    // Calcular el lag
+                    long lag = logEndOffset - currentOffset;
+                    totalLag += lag;
+
+                    // Mostrar el lag para cada partición
+                    System.out.printf(
+                            "Partición: %d, Offset comprometido: %d, Log End Offset: %d, Lag: %d%n",
+                            partition.partition(), currentOffset, logEndOffset, lag
+                    );
+
+                }
+
+                // Mostrar el lag total
+                System.out.printf("Lag total del consumidor en todas las particiones: %d%n", totalLag);
 
                 // Reenviar el mensaje al siguiente paso
                 context().forward(key, value);
@@ -107,8 +127,8 @@ public class KafkaFactory {
 
         splitStream(stream, kafkaDefinition.getOutputTopicAdvice(), kafkaDefinition.getRetryTopic(),
                 kafkaDefinition.getErrorTopic(), ProcessContext.class, SmsNotification.class);
-
     }
+
 
     public <O, T extends ProcessContext<?, O>> void splitStream
             (KStream<String, T> stream, String oututTopicAdvice, String retryTopic,
@@ -116,17 +136,19 @@ public class KafkaFactory {
         stream.split()
                 .branch((key, value) -> value.getTask().getState() == TaskState.Success,
                         Branched.withConsumer(ks -> ks
-                                .mapValues((context) -> {
-                                    System.out.println("En el primer branch ...");
-                                    return context.getOutput();
-                                })
+                                .peek((key, value) ->
+                                        logger.info("Success Branch - Key: {}, Output: {}", key, value.getOutput()))
+                                .mapValues(ProcessContext::getOutput)
                                 .to(oututTopicAdvice, Produced.with(Serdes.String(), new JsonSerde<>(output)))))
                 .branch((key, value) -> value.getTask().getState() == TaskState.Retry,
                         Branched.withConsumer(ks -> ks
+                                .peek((key, value) -> logger.info("Retry Branch - Key: {}, Value: {}", key, value))
                                 .to(retryTopic, Produced.with(Serdes.String(), new JsonSerde<>(processContext)))))
                 .branch((key, value) -> value.getTask().getState() == TaskState.Error
                                 && kafkaDefinition.getTypeOperation() ==TypeOperation.TOPIC,
                         Branched.withConsumer(ks -> ks
+                                .peek((key, value) ->
+                                        logger.info("Error Branch (TOPIC) - Key: {}, Value: {}", key, value))
                                 .map((k, v) -> KeyValue.pair(v.getKey(), v))
                                 .to(errorTopic, Produced.with(Serdes.String(), new JsonSerde<>(processContext)))))
                 .branch((key, value) -> value.getTask().getState() == TaskState.Error

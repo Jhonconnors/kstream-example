@@ -5,20 +5,19 @@ import com.example.kstream.demo.context.ProcessContext;
 import com.example.kstream.demo.context.TaskElement;
 import com.example.kstream.demo.model.ClientInsight;
 import com.example.kstream.demo.model.SmsNotification;
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
-
 @Order(1)
 @Component
 public class TaskLogger extends TaskElement<ProcessContext<ClientInsight, SmsNotification>> {
 
+    private final Logger logger  = LoggerFactory.getLogger(TaskLogger.class);
     @Autowired
     private KafkaDefinition kafkaDefinition;
     @Autowired
@@ -26,5 +25,6 @@ public class TaskLogger extends TaskElement<ProcessContext<ClientInsight, SmsNot
     @Override
     public void execute(ProcessContext<ClientInsight, SmsNotification> processContext) {
 
+        logger.debug("This is a simple logger example : {}",processContext );
     }
 }
