@@ -46,8 +46,6 @@ public class KafkaFactory {
     @Autowired
     private ProcessContext<ClientInsight, SmsNotification> process = new ProcessContext<>();
 
-
-
     @Autowired
     void buildPipeline(StreamsBuilder builder) {
         KStream<String, ProcessContext> stream = builder.stream(kafkaDefinition.getInputTopic(),
@@ -58,65 +56,20 @@ public class KafkaFactory {
                     streamProcessingService.process(process);
                     return process;
                 });
-
-        // Añadir un Processor personalizado para monitorear el lag
         stream.process(() -> new AbstractProcessor<String, ProcessContext>() {
             private KafkaConsumer<String, String> kafkaConsumer;
-
             @Override
             public void init(ProcessorContext context) {
                 super.init(context);
             }
-
             @Override
             public void process(String key, ProcessContext value) {
-                // Configuración del consumidor Kafka adicional
-                Properties props = new Properties();
-                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
-                props.put(ConsumerConfig.GROUP_ID_CONFIG, this.context.applicationId());
-                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-                props.put(ConsumerConfig.CLIENT_ID_CONFIG, "extra_consumer");
-                kafkaConsumer = new KafkaConsumer<>(props);
-                long totalLag = 0;
-
-                // Obtener las particiones del tópico
-                List<TopicPartition> partitions = kafkaConsumer.partitionsFor(kafkaDefinition.getInputTopic())
-                        .stream()
-                        .map(info -> new TopicPartition(info.topic(), info.partition()))
-                        .collect(Collectors.toList());
-
-                kafkaConsumer.assign(partitions);
-
-
-                // Obtener el offset comprometido para cada partición
-                for (TopicPartition partition : partitions) {
-                    // Obtener el offset comprometido (current offset) del consumidor real
-                    long currentOffset = kafkaConsumer.position(partition);
-
-                    // Obtener el Log End Offset
-                    kafkaConsumer.seekToEnd(Collections.singletonList(partition));
-                    long logEndOffset = kafkaConsumer.position(partition);
-
-                    // Calcular el lag
-                    long lag = logEndOffset - currentOffset;
-                    totalLag += lag;
-
-                    // Mostrar el lag para cada partición
-                    System.out.printf(
-                            "Partición: %d, Offset comprometido: %d, Log End Offset: %d, Lag: %d%n",
-                            partition.partition(), currentOffset, logEndOffset, lag
-                    );
-
-                }
-
-                // Mostrar el lag total
-                System.out.printf("Lag total del consumidor en todas las particiones: %d%n", totalLag);
+                kafkaConsumer = createKafkaConsumer(this.context().applicationId());
+                logginConsumerLag(kafkaConsumer, createListPartitions(kafkaConsumer));
 
                 // Reenviar el mensaje al siguiente paso
                 context().forward(key, value);
             }
-
             @Override
             public void close() {
                 if (kafkaConsumer != null) {
@@ -128,7 +81,6 @@ public class KafkaFactory {
         splitStream(stream, kafkaDefinition.getOutputTopicAdvice(), kafkaDefinition.getRetryTopic(),
                 kafkaDefinition.getErrorTopic(), ProcessContext.class, SmsNotification.class);
     }
-
 
     public <O, T extends ProcessContext<?, O>> void splitStream
             (KStream<String, T> stream, String oututTopicAdvice, String retryTopic,
@@ -160,6 +112,46 @@ public class KafkaFactory {
                                 })));
     }
 
+    private List<TopicPartition> createListPartitions(KafkaConsumer<String, String> kafkaConsumer) {
+        // Obtener las particiones del tópico
+        List<TopicPartition> partitions = kafkaConsumer.partitionsFor(kafkaDefinition.getInputTopic())
+                .stream()
+                .map(info -> new TopicPartition(info.topic(), info.partition()))
+                .collect(Collectors.toList());
+        kafkaConsumer.assign(partitions);
+        return partitions;
+    }
 
+    private void logginConsumerLag(KafkaConsumer<String, String> kafkaConsumer, List<TopicPartition> partitions) {
+        long totalLag = 0;
+        // Obtener el offset comprometido para cada partición
+        for (TopicPartition partition : partitions) {
+            // Obtener el offset comprometido (current offset) del consumidor real
+            long currentOffset = kafkaConsumer.position(partition);
+
+            // Obtener el Log End Offset
+            kafkaConsumer.seekToEnd(Collections.singletonList(partition));
+            long logEndOffset = kafkaConsumer.position(partition);
+
+            // Calcular el lag
+            long lag = logEndOffset - currentOffset;
+            totalLag += lag;
+
+            logger.info("Partición: {}, Offset comprometido: {}, Log End Offset: {}, Lag: {}",
+                    partition.partition(), currentOffset, logEndOffset, lag);
+        }
+        // Mostrar el lag total
+        logger.info("Lag total del consumidor en todas las particiones: {}", totalLag);
+    }
+
+    private KafkaConsumer<String, String> createKafkaConsumer(String groupId) {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "extra_consumer");
+        return new KafkaConsumer<>(props);
+    }
 
 }
