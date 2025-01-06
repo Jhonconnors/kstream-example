@@ -38,7 +38,7 @@ public class KafkaFactory {
     private KafkaDefinition kafkaDefinition;
 
     protected void customError(ProcessContext processContext) {
-        System.out.println("This is the Value : "+processContext);
+        logger.info("This is the Value : {}",processContext);
     }
 
     @Autowired
@@ -124,9 +124,9 @@ public class KafkaFactory {
 
     private void logginConsumerLag(KafkaConsumer<String, String> kafkaConsumer, List<TopicPartition> partitions) {
         long totalLag = 0;
-        // Obtener el offset comprometido para cada partición
+
         for (TopicPartition partition : partitions) {
-            // Obtener el offset comprometido (current offset) del consumidor real
+            // Obtener el offset comprometido
             long currentOffset = kafkaConsumer.position(partition);
 
             // Obtener el Log End Offset
